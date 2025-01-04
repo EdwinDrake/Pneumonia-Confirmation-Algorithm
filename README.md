@@ -9,7 +9,9 @@ This repository contains a Quarto-based analysis for detecting pneumonia from X-
 ## Project Structure
 - **`Pneumonia-Confirmation-Algorithm.qmd`**: Quarto script containing the analysis.
 - **`Pneumonia-Confirmation-Algorithm.html`**: Rendered report.
-- **`data/`**: Raw and processed datasets.
+- **`data/`**: Raw and processed datasets.The dataset used in this project is too large to host directly on GitHub. You can download it from the following link:
+
+[Download Dataset from Google Drive]([https://drive.google.com/uc?export=download&id=FILE_ID](https://drive.google.com/file/d/1X9EmM4RyPWmX8T63tefowj6Qyuzxg2MS/view?usp=drive_link))
 - **`visuals/`**: Generated plots and visualizations.
 - **`reports/`**: Final report in PDF and Markdown formats.
 
