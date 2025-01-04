@@ -1,0 +1,161 @@
+---
+title: "X-RAY ANALYTICS_PNEUMONIA CONFIRMATION"
+author: "Edwin Drake Bwambale"
+format: html
+editor: visual
+---
+
+```{r setup, include=FALSE}
+# Install and load required packages
+if (!requireNamespace("keras", quietly = TRUE)) install.packages("keras")
+library(keras)
+if (!requireNamespace("tensorflow", quietly = TRUE)) install.packages("tensorflow")
+library(tensorflow)
+library(utils)
+```
+
+# Unzipping the Dataset and Setting Up my Directory
+
+```{r}
+# Set working directory and unzip the file
+working_dir <- "C:/Users/bedwi/OneDrive/XRAY ANALYTICS"
+zip_file <- file.path(working_dir, "chest-xray-pneumonia.zip")
+
+# Unzip the file into the working directory
+unzip(zip_file, exdir = working_dir)
+
+# Define paths to the train, validation, and test datasets
+base_dir <- file.path(working_dir, "chest_xray")
+train_dir <- file.path(base_dir, "train")
+val_dir <- file.path(base_dir, "val")
+test_dir <- file.path(base_dir, "test")
+
+```
+
+# Loading and Preprocessing the Images
+
+```{r}
+# Load the data using ImageDataGenerator
+# Preprocessing the images and augmentation for training data
+train_datagen <- image_data_generator(
+  rescale = 1/255,
+  shear_range = 0.2,
+  zoom_range = 0.2,
+  horizontal_flip = TRUE
+)
+
+val_datagen <- image_data_generator(rescale = 1/255)
+
+# Loading training, validation, and test data
+train_generator <- flow_images_from_directory(
+  train_dir,
+  train_datagen,
+  target_size = c(150, 150),
+  batch_size = 32,
+  class_mode = "binary"
+)
+
+val_generator <- flow_images_from_directory(
+  val_dir,
+  val_datagen,
+  target_size = c(150, 150),
+  batch_size = 32,
+  class_mode = "binary"
+)
+
+test_generator <- flow_images_from_directory(
+  test_dir,
+  val_datagen,
+  target_size = c(150, 150),
+  batch_size = 32,
+  class_mode = "binary"
+)
+
+```
+
+# Model Definition and Compilation
+
+```{r}
+# Define the CNN Model
+model <- keras_model_sequential() %>%
+  layer_conv_2d(filters = 32, kernel_size = c(3, 3), activation = 'relu', input_shape = c(150, 150, 3)) %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>%
+  
+  layer_conv_2d(filters = 64, kernel_size = c(3, 3), activation = 'relu') %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>%
+  
+  layer_conv_2d(filters = 128, kernel_size = c(3, 3), activation = 'relu') %>%
+  layer_max_pooling_2d(pool_size = c(2, 2)) %>%
+  
+  layer_flatten() %>%
+  layer_dense(units = 128, activation = 'relu') %>%
+  layer_dropout(0.5) %>%
+  layer_dense(units = 1, activation = 'sigmoid')  # Binary classification
+
+#  Compile the model
+model %>% compile(
+  optimizer = 'adam',
+  loss = 'binary_crossentropy',
+  metrics = 'accuracy'
+)
+
+# Print model summary
+summary(model)
+
+```
+
+# Training my Model
+
+```{r}
+# Step 5: Train the model
+history <- model %>% fit(
+  train_generator,
+  steps_per_epoch = train_generator$n / train_generator$batch_size,
+  validation_data = val_generator,
+  validation_steps = val_generator$n / val_generator$batch_size,
+  epochs = 20,
+  callbacks = list(callback_early_stopping(monitor = 'val_loss', patience = 5, restore_best_weights = TRUE))
+)
+
+# Plot training history
+plot(history)
+
+```
+
+# Model Evaluation
+
+```{r}
+evaluation <- model %>% evaluate(
+  val_generator, 
+  steps = val_generator$n / val_generator$batch_size  # Make sure to specify steps
+)
+
+# Print validation loss and accuracy
+cat("Validation Loss:", evaluation[[1]], "\n")
+cat("Validation Accuracy:", evaluation[[2]], "\n")
+
+
+```
+
+# Predictions
+
+```{r}
+# Make Predictions on a new image
+
+#image with Pneumonia"person1946_bacteria_4874.jpeg"
+#image wihout "IM-0135-0001.jpeg"
+
+img_path <- "C:/Users/bedwi/OneDrive/XRAY ANALYTICS/person1946_bacteria_4874.jpeg"
+img <- image_load(img_path, target_size = c(150, 150))
+img_tensor <- image_to_array(img) / 255
+img_tensor <- array_reshape(img_tensor, c(1, 150, 150, 3))
+
+# Predict the class (Pneumonia or Normal)
+prediction <- model %>% predict(img_tensor)
+if (prediction > 0.5) {
+  cat("Pneumonia detected.\n")
+} else {
+  cat("Normal.\n")
+}
+
+```
